@@ -1,6 +1,7 @@
 import cv2
 from ultralytics import YOLO
-from app.ai.colors import FOOT_COLOR, OUTSIDE_COLOR, ROI_COLOR, PERSON_COLOR
+
+from app.ai.colors import FOOT_COLOR, OUTSIDE_COLOR, PERSON_COLOR, ROI_COLOR
 
 # Load once when backend starts
 model = YOLO("models/pedestrian.pt")

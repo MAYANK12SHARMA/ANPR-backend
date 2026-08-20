@@ -11,10 +11,11 @@ No business logic.
 """
 
 from datetime import datetime
-from sqlalchemy.orm import Session
-from .models import User, RefreshToken
-from .enums import UserRole
 
+from sqlalchemy.orm import Session
+
+from .enums import UserRole
+from .models import RefreshToken, User
 
 class AuthRepository:
     """
@@ -59,6 +60,7 @@ class AuthRepository:
             hashed_password=hashed_password,
             phone=phone,
             role=role,
+            receive_processing_email=True,
         )
 
         self.db.add(user)
@@ -80,6 +82,7 @@ class AuthRepository:
             full_name=full_name,
             email=email,
             hashed_password=hashed_password,
+            receive_processing_email=True,
         )
 
         self.db.add(user)
@@ -106,6 +109,39 @@ class AuthRepository:
         self.db.refresh(user)
 
         return user
+
+    def update_email_notification(
+        self,
+        user: User,
+        enabled: bool,
+    ) -> User:
+        """
+        Enable or disable processing completion
+        email notifications.
+        """
+
+        user.receive_processing_email = enabled
+
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
+
+    def get_email_notification_users(self) -> list[User]:
+        """
+        Returns all active users that wish
+        to receive completion emails.
+        """
+
+        return (
+            self.db.query(User)
+            .filter(
+                User.is_active.is_(True),
+                User.receive_processing_email.is_(True),
+            )
+            .order_by(User.full_name.asc())
+            .all()
+        )
 
     def delete_user(
         self,

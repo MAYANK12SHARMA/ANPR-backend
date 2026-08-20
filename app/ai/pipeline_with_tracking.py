@@ -1,34 +1,33 @@
 # backend/app/ai/pipeline_with_tracking.py
 
-import os
-import re
-import cv2
 import json
+import os
 import queue
-import threading
-import numpy as np
+import re
 import subprocess
+import threading
 import time
 from datetime import datetime
 
-from sympy import fps
+import cv2
+import numpy as np
 
-from app.ai.plate_detector import detect_plates
-from app.ai.ocr import run_paddleocr
-from app.db.models import Plate, Job
-from app.ai.vehicle_detector import detect_vehicles
-from app.ai.tracker import VehicleTracker, LineCrossCounter
-from app.ai.utils import normalize_plate
-from app.ai.pedestrian_detector import detect_pedestrians
-from app.services.alert_service import create_alert
 from app.ai.colors import (
-    VEHICLE_COLOR,
-    PLATE_COLOR,
     ALERT_COLOR,
     LINE_COLOR,
-    ROI_COLOR,
     OUTSIDE_COLOR,
+    PLATE_COLOR,
+    ROI_COLOR,
+    VEHICLE_COLOR,
 )
+from app.ai.ocr import run_paddleocr
+from app.ai.pedestrian_detector import detect_pedestrians
+from app.ai.plate_detector import detect_plates
+from app.ai.tracker import LineCrossCounter, VehicleTracker
+from app.ai.utils import normalize_plate
+from app.ai.vehicle_detector import detect_vehicles
+from app.db.models import Job, Plate
+from app.services.alert_service import create_alert
 
 OUTPUT_DIR = "media/outputs"
 PROCESSED_DIR = "media/processed"
@@ -326,7 +325,7 @@ def run_pipeline_with_tracking(
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
 
     if not out.isOpened():
-        raise Exception(f"Failed to create VideoWriter")
+        raise Exception("Failed to create VideoWriter")
 
     # Initialize tracker
     tracker = VehicleTracker(max_disappeared=30, max_distance=80)
@@ -356,7 +355,6 @@ def run_pipeline_with_tracking(
 
     ALERT_COOLDOWN_FRAMES = int(fps * 10)
 
-    #
 
     crossed_track_ids = set()  # Track IDs that crossed the line
     live_frame_path = os.path.join("media", "frames", f"{job_id}_live.jpg")
@@ -665,7 +663,7 @@ def run_pipeline_with_tracking(
                                         print(
                                             f"[OCR] Track={display_id} | Plate: {best_candidate['text']} | Conf: {best_candidate['confidence']:.2f}"
                                         )
-                            pass  # OCR returned no results (normal for many frames)
+                            # OCR returned no results (normal for many frames)
                         # raw_crop is empty — skip silently
 
                     cv2.putText(

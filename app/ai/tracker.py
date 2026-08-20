@@ -3,9 +3,9 @@ Vehicle Tracker Integration for ANPR System
 Filters detections to only those crossing the line within ROI
 """
 
+
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from collections import defaultdict
 
 
 class VehicleTracker:

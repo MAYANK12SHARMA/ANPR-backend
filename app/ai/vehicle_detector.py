@@ -1,5 +1,5 @@
-from ultralytics import YOLO
 import torch
+from ultralytics import YOLO
 
 # Load model once
 device = "cuda" if torch.cuda.is_available() else "cpu"

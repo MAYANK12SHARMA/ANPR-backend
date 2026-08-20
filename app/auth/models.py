@@ -1,4 +1,5 @@
 from datetime import datetime
+from sqlalchemy import Boolean
 
 from sqlalchemy import (
     Boolean,
@@ -10,7 +11,6 @@ from sqlalchemy import (
     String,
     Text,
 )
-
 from sqlalchemy.orm import relationship
 
 from app.db.database import Base
@@ -76,6 +76,12 @@ class User(Base):
     is_verified = Column(
         Boolean,
         default=False,
+        nullable=False,
+    )
+
+    receive_processing_email = Column(
+        Boolean,
+        default=True,
         nullable=False,
     )
 

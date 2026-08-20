@@ -5,13 +5,19 @@ import os
 os.environ.setdefault("OPENCV_LOG_LEVEL", "ERROR")
 
 from fastapi import FastAPI
-from app.api.routes import router
-from app.auth.routes import router as auth_router
-from app.db.database import engine
-from app.db import models
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
+
+from app.api.routes import router
+from app.auth.routes import router as auth_router
+from app.db import models
+from app.db.database import engine
+
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Create tables
 models.Base.metadata.create_all(bind=engine)
@@ -19,6 +25,7 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(title="ANPR Backend")
 app.mount("/media", StaticFiles(directory="media"), name="media")
 app.include_router(router)
+
 app.include_router(
     auth_router,
     prefix="/auth",

@@ -12,12 +12,12 @@ decode_token()
 
 from datetime import datetime, timedelta
 
-from jose import jwt, JWTError
+from jose import JWTError, jwt
 
 from .constants import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    REFRESH_TOKEN_EXPIRE_DAYS,
     JWT_ALGORITHM,
+    REFRESH_TOKEN_EXPIRE_DAYS,
 )
 
 # Later move this into .env

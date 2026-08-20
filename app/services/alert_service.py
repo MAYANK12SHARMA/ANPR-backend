@@ -1,4 +1,5 @@
 import os
+
 import cv2
 
 from app.db.models import Alert

@@ -18,9 +18,9 @@ Operator
 Viewer
 """
 from fastapi import Depends, HTTPException, status
-from app.db.models import Job
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
+
+from app.db.models import Job
 
 from .dependencies import get_current_user
 from .enums import UserRole

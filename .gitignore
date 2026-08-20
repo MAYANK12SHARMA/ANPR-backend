@@ -1,9 +1,4 @@
 # Please anayiss the project and iwan tto build a emailing alert system where viewer, operator, and admin will get the mail when someone perform the video processing task, the admin has ability to remove , add, delete , see from emailing system to get mail. and for operator he can not remove the admin only he can remove any operator or viewer. viwer cannot do anything they can only choose to remove or add themself. when processing complete the system will sent them an email with all phot which caputerd during processing
-# git add README.md
-# git commit -m "first commit"
-# git branch -M main
-# git remote add origin https://github.com/MAYANK12SHARMA/ANPR-backend.git
-# git push -u origin main
 
 
 # Byte-compiled / optimized / DLL files
@@ -141,3 +136,10 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
+
+
+media/
+
+teset.py
+
+check.py

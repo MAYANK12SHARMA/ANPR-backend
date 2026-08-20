@@ -1,43 +1,45 @@
 # backend/app/api/routes.py
 
-from datetime import datetime
 import asyncio
-import time as _time
+import json
+import os
 import queue
+import shutil
 import threading
-from app.auth.permissions import (
-    get_job_for_read,
-    get_job_for_update,
-    get_job_for_delete,
-)
+import time as _time
+import urllib.parse
+import uuid
+from datetime import datetime
+from enum import Enum
+
+import cv2
 from fastapi import (
     APIRouter,
-    Form,
-    UploadFile,
-    File,
-    Depends,
     BackgroundTasks,
+    Depends,
+    File,
+    Form,
     HTTPException,
+    UploadFile,
     WebSocket,
     WebSocketDisconnect,
 )
 from fastapi.responses import FileResponse
+from pydantic import BaseModel, ConfigDict, EmailStr
 from sqlalchemy.orm import Session
-from app.db.models import Job, Plate, Alert
-from app.db.database import SessionLocal
-from pydantic import BaseModel
-from typing import List, Optional
-import os
-import shutil
-import uuid
-import cv2
-import json
-import urllib.parse
-from app.auth.models import User
-from app.auth.permissions import require_viewer, require_operator, require_admin
-from app.services.job_manager import process_job
+
 from app.auth.jwt import verify_token
+from app.auth.models import User
+from app.auth.permissions import (
+    get_job_for_read,
+    get_job_for_update,
+    require_operator,
+    require_viewer,
+)
 from app.auth.repository import AuthRepository
+from app.db.database import SessionLocal
+from app.db.models import Alert, Job, Plate
+from app.services.job_manager import process_job
 
 router = APIRouter()
 
@@ -58,9 +60,9 @@ class AnalysisConfigRequest(BaseModel):
 
 class ROILineRequest(BaseModel):
     job_id: str
-    roi_coords: Optional[List[List[int]]] = None  # [[x1,y1], [x2,y2], ...]
-    line_coords: Optional[List[int]] = None  # [x1, y1, x2, y2]
-    line_distance_meters: Optional[float] = None
+    roi_coords: list[list[int]] | None = None  # [[x1,y1], [x2,y2], ...]
+    line_coords: list[int] | None = None  # [x1, y1, x2, y2]
+    line_distance_meters: float | None = None
 
 
 class CameraCreateRequest(BaseModel):
@@ -68,7 +70,7 @@ class CameraCreateRequest(BaseModel):
     password: str
     ip_address: str
     path: str = "/h264"
-    name: Optional[str] = None
+    name: str | None = None
 
     analysis_config: AnalysisConfigRequest = AnalysisConfigRequest()
 
@@ -76,9 +78,9 @@ class CameraCreateRequest(BaseModel):
 
 
 class CameraStartRequest(BaseModel):
-    roi_coords: Optional[List[List[int]]] = None
-    line_coords: Optional[List[int]] = None
-    line_distance_meters: Optional[float] = None
+    roi_coords: list[list[int]] | None = None
+    line_coords: list[int] | None = None
+    line_distance_meters: float | None = None
 
 
 class AlertResponse(BaseModel):
@@ -87,9 +89,17 @@ class AlertResponse(BaseModel):
     alert_type: str
     title: str
     description: str
-    frame_number: Optional[int]
-    image_path: Optional[str]
-    created_at: Optional[str]
+    frame_number: int | None
+    image_path: str | None
+    created_at: str | None
+
+
+
+class EmailRole(str, Enum):
+    ADMIN = "admin"
+    OPERATOR = "operator"
+    VIEWER = "viewer"
+
 
 
 def get_db():
@@ -707,3 +717,117 @@ async def camera_live_ws(websocket: WebSocket, job_id: str):
         pass
     finally:
         db.close()
+
+
+@router.delete("/job/{job_id}")
+def delete_job(
+    job_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_operator),
+):
+    job = get_job_for_update(
+        db,
+        job_id,
+        current_user,
+    )
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    # Prevent deleting running jobs
+    if job.status in {"pending", "processing"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Stop the job before deleting it.",
+        )
+
+    # -----------------------------
+    # Delete plate images
+    # -----------------------------
+    for plate in job.plates:
+        for image_path in [
+            plate.best_image_path,
+            plate.vehicle_image_path,
+        ]:
+            if image_path:
+                try:
+                    if os.path.exists(image_path):
+                        os.remove(image_path)
+                except Exception as e:
+                    print(f"Failed to delete image {image_path}: {e}")
+
+    # -----------------------------
+    # Delete alert images
+    # -----------------------------
+    for alert in job.alerts:
+        if alert.image_path:
+            try:
+                if os.path.exists(alert.image_path):
+                    os.remove(alert.image_path)
+            except Exception as e:
+                print(f"Failed to delete alert image {alert.image_path}: {e}")
+
+    # -----------------------------
+    # Delete uploaded video
+    # -----------------------------
+    if job.video_path:
+        try:
+            if os.path.exists(job.video_path):
+                os.remove(job.video_path)
+        except Exception as e:
+            print(f"Failed to delete video: {e}")
+
+    # -----------------------------
+    # Delete processed video
+    # -----------------------------
+    if job.processed_video_path:
+        try:
+            if os.path.exists(job.processed_video_path):
+                os.remove(job.processed_video_path)
+        except Exception as e:
+            print(f"Failed to delete processed video: {e}")
+
+    # -----------------------------
+    # Delete ROI frame
+    # -----------------------------
+    first_frame = os.path.join(
+        FRAMES_DIR,
+        f"{job_id}_first_frame.jpg",
+    )
+
+    if os.path.exists(first_frame):
+        try:
+            os.remove(first_frame)
+        except Exception:
+            pass
+
+    # -----------------------------
+    # Delete live frame
+    # -----------------------------
+    live_frame = os.path.join(
+        FRAMES_DIR,
+        f"{job_id}_live.jpg",
+    )
+
+    if os.path.exists(live_frame):
+        try:
+            os.remove(live_frame)
+        except Exception:
+            pass
+
+    # -----------------------------
+    # Remove active queue
+    # -----------------------------
+    active_frame_queues.pop(job_id, None)
+
+    # -----------------------------
+    # Delete database record
+    # -----------------------------
+    db.delete(job)
+    db.commit()
+
+    return {
+        "message": "Job deleted successfully",
+        "job_id": job_id,
+    }
+ 

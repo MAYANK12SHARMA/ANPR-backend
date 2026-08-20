@@ -1,7 +1,9 @@
 import re
+
 from paddleocr import PaddleOCR
-from app.config import USE_GPU, PADDLE_OCR_MODEL_DIR
+
 from app.ai.preprocessing import light_preprocess
+from app.config import PADDLE_OCR_MODEL_DIR
 
 # ==========================================================
 # CONFIG

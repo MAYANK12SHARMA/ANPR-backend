@@ -1,12 +1,26 @@
 # backend/app/db/models.py
 
-from sqlalchemy import JSON, Column, String, DateTime, Integer, Float
-from sqlalchemy.sql import func
-from app.db.database import Base
-from sqlalchemy import ForeignKey
-from sqlalchemy.orm import relationship
 import uuid
+from datetime import datetime
+from enum import Enum
 
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+)
+from sqlalchemy import (
+    Enum as SqlEnum,
+)
+from sqlalchemy.orm import relationship
+from sqlalchemy.sql import func
+
+from app.db.database import Base
 
 class Job(Base):
     __tablename__ = "jobs"
@@ -132,3 +146,10 @@ class Alert(Base):
         "Job",
         back_populates="alerts",
     )
+
+
+class EmailRole(str, Enum):
+    ADMIN = "admin"
+    OPERATOR = "operator"
+    VIEWER = "viewer"
+

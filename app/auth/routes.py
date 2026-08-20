@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Body, Depends, status
 from sqlalchemy.orm import Session
 
 from app.db.database import SessionLocal
@@ -9,12 +9,11 @@ from .dependencies import (
 )
 from .models import User
 from .schemas import (
-    UserRegister,
-    UserLogin,
-    UserResponse,
     LoginResponse,
     RefreshTokenRequest,
     UserCreate,
+    UserLogin,
+    UserResponse,
     UserUpdate,
 )
 from .service import AuthService
@@ -142,10 +141,11 @@ def get_users(
     db: Session = Depends(get_db),
     admin: User = Depends(require_admin),
 ):
-     
+
     service = AuthService(db)
 
     return service.get_users()
+
 
 @router.get(
     "/users/{user_id}",
@@ -159,6 +159,7 @@ def get_user(
     service = AuthService(db)
 
     return service.get_user(user_id)
+
 
 # =====================================================
 # Create User (Admin)
@@ -204,6 +205,27 @@ def update_user(
     )
 
 
+@router.patch(
+    "/me/email-notification",
+    response_model=UserResponse,
+)
+def update_my_email_notification(
+    enabled: bool = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    service = AuthService(db)
+
+    return service.update_my_email_notification(
+        enabled=enabled,
+        current_user=current_user,
+    )
+
+
+ 
+
+
+
 # =====================================================
 # Delete User (Admin)
 # =====================================================
@@ -225,17 +247,3 @@ def delete_user(
 # =====================================================
 # Get User By ID (Admin)
 # =====================================================
-
-
-@router.get(
-    "/users/{user_id}",
-    response_model=UserResponse,
-)
-def get_user(
-    user_id: int,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_admin),
-):
-    service = AuthService(db)
-
-    return service.get_user(user_id)

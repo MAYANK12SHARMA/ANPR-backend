@@ -16,10 +16,10 @@ from sqlalchemy.orm import Session
 
 from app.db.database import get_db
 
-from .jwt import verify_token
-from .repository import AuthRepository
-from .models import User
 from .enums import UserRole
+from .jwt import verify_token
+from .models import User
+from .repository import AuthRepository
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 

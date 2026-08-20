@@ -1,30 +1,41 @@
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool
+
 from alembic import context
 
-from app.db.database import Base
-from app.db import models  # Import models so Alembic detects them
-import app.auth.models
+# Database
+from app.db.database import Base, DATABASE_URL
+
+# ------------------------------------------------------------------
+# IMPORTANT:
+# Import every module that contains SQLAlchemy models.
+# This registers all tables with Base.metadata so Alembic
+# can detect them correctly.
+# ------------------------------------------------------------------
+
 import app.db.models
-# Alembic Config object
+import app.auth.models
+
+# ------------------------------------------------------------------
+
 config = context.config
 
-# Use the same database URL as your application
-from app.db.database import DATABASE_URL
+config.set_main_option(
+    "sqlalchemy.url",
+    DATABASE_URL,
+)
 
-config.set_main_option("sqlalchemy.url", DATABASE_URL)
-
-# Configure logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Metadata for autogenerate
 target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """Run migrations in offline mode."""
+    """
+    Run migrations in offline mode.
+    """
 
     url = config.get_main_option("sqlalchemy.url")
 
@@ -34,7 +45,9 @@ def run_migrations_offline() -> None:
         literal_binds=True,
         compare_type=True,
         compare_server_default=True,
-        dialect_opts={"paramstyle": "named"},
+        dialect_opts={
+            "paramstyle": "named",
+        },
     )
 
     with context.begin_transaction():
@@ -42,9 +55,12 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in online mode."""
+    """
+    Run migrations in online mode.
+    """
 
     configuration = config.get_section(config.config_ini_section)
+
     configuration["sqlalchemy.url"] = DATABASE_URL
 
     connectable = engine_from_config(
@@ -54,6 +70,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+
         context.configure(
             connection=connection,
             target_metadata=target_metadata,

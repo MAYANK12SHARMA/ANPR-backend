@@ -2,14 +2,15 @@
 
 import os
 import re
-import cv2
 import subprocess
 from collections import defaultdict
 
-from app.ai.plate_detector import detect_plates
+import cv2
+
 from app.ai.ocr import run_paddleocr
-from app.db.models import Plate, Job
+from app.ai.plate_detector import detect_plates
 from app.ai.vehicle_detector import detect_vehicles
+from app.db.models import Job, Plate
 
 OUTPUT_DIR = "media/outputs"
 PROCESSED_DIR = "media/processed"
@@ -48,7 +49,7 @@ def run_pipeline(job_id: str, video_path: str, db):
     out = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
     
     if not out.isOpened():
-        raise Exception(f"Failed to create VideoWriter with codec mp4v")
+        raise Exception("Failed to create VideoWriter with codec mp4v")
 
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     if total_frames <= 0:

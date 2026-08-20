@@ -21,19 +21,18 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from .repository import AuthRepository
-from .security import hash_password, verify_password
-from .jwt import create_access_token, create_refresh_token, verify_token
-from .schemas import (
-    UserRegister,
-    UserCreate,
-    UserUpdate,
-    LoginResponse,
-    UserResponse,
-)
-from .models import User
 from .constants import REFRESH_TOKEN_EXPIRE_DAYS
-
+from .jwt import create_access_token, create_refresh_token, verify_token
+from .models import User
+from .repository import AuthRepository
+from .schemas import (
+    LoginResponse,
+    UserCreate,
+    UserRegister,
+    UserResponse,
+    UserUpdate,
+)
+from .security import hash_password, verify_password
 
 class AuthService:
 
@@ -230,8 +229,7 @@ class AuthService:
     # =====================================================
 
     def get_users(self) -> list[User]:
-        
-        
+
         return self.repository.get_all_users()
 
     def get_user(
@@ -339,11 +337,79 @@ class AuthService:
         user.role = request.role
         user.is_active = request.is_active
 
+        # NEW
+        user.receive_processing_email = request.receive_processing_email
+
         return self.repository.update_user(user)
 
     # =====================================================
     # DELETE USER
     # =====================================================
+
+    # =====================================================
+    # MY EMAIL NOTIFICATION
+    # =====================================================
+
+    def update_my_email_notification(
+        self,
+        enabled: bool,
+        current_user: User,
+    ) -> User:
+        """
+        Enable or disable processing completion
+        emails for the logged-in user.
+        """
+
+        return self.repository.update_email_notification(
+            current_user,
+            enabled,
+        )
+
+    # =====================================================
+    # ADMIN / OPERATOR EMAIL NOTIFICATION
+    # =====================================================
+
+
+    def update_user_email_notification(
+        self,
+        user_id: int,
+        enabled: bool,
+        current_user: User,
+    ) -> User:
+
+        user = self.repository.get_user_by_id(user_id)
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        # Admin
+        if current_user.role.value == "admin":
+            return self.repository.update_email_notification(
+                user,
+                enabled,
+            )
+
+        # Operator
+        if current_user.role.value == "operator":
+
+            if user.role.value == "admin":
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Operators cannot modify admin notification settings.",
+                )
+
+            return self.repository.update_email_notification(
+                user,
+                enabled,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied.",
+        )
 
     def delete_user(
         self,

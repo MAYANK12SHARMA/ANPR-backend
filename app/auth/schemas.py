@@ -84,6 +84,8 @@ class UserResponse(BaseModel):
     is_active: bool
 
     is_verified: bool
+    
+    receive_processing_email: bool
 
     last_login: datetime | None = None
 
@@ -140,6 +142,8 @@ class UserUpdate(BaseModel):
     role: UserRole
 
     is_active: bool
+    
+    receive_processing_email: bool
 
 
 # =====================================================
@@ -150,3 +154,10 @@ class UserUpdate(BaseModel):
 class UserListResponse(BaseModel):
 
     users: list[UserResponse]
+
+# =====================================================
+# Email Notification Preference
+# =====================================================
+
+class EmailNotificationUpdate(BaseModel):
+    receive_processing_email: bool
